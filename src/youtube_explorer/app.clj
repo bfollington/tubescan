@@ -1,7 +1,7 @@
-(ns acme.app
+(ns youtube-explorer.app
   (:require [org.httpkit.server :as server]
             [nrepl.server :as nrepl]
-            [acme.youtube :as youtube]
+            [youtube-explorer.youtube :as youtube]
             [mount.core :refer [start defstate]])
   (:gen-class))
 

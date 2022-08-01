@@ -1,4 +1,4 @@
-(ns acme.youtube
+(ns youtube-explorer.youtube
   (:require [clojure.java [io :as io]]
             [mount.core :refer [defstate]])
   (:import (com.google.api.client.googleapis.javanet GoogleNetHttpTransport)

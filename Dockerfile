@@ -13,4 +13,4 @@ COPY --from=builder /opt/target/app-0.0.1-standalone.jar /app.jar
 
 EXPOSE 8090 7777
 
-ENTRYPOINT ["java", "-cp", "app.jar", "clojure.main", "-m", "acme.app"]
+ENTRYPOINT ["java", "-cp", "app.jar", "clojure.main", "-m", "youtube-explorer.app"]

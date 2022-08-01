@@ -1,7 +1,7 @@
 (ns build
   (:require [clojure.tools.build.api :as b]))
 
-(def lib 'acme/app)
+(def lib 'youtube-explorer/app)
 (def version "0.0.1")
 (def class-dir "target/classes")
 (def basis (b/create-basis {:project "deps.edn"}))
@@ -29,7 +29,7 @@
   (b/compile-clj {:basis basis
                   :src-dirs ["src"]
                   :class-dir class-dir
-                  :ns-compile '[acme.app]})
+                  :ns-compile '[youtube-explorer.app]})
   (b/uber {:class-dir class-dir
            :uber-file uber-file
            :basis basis})
