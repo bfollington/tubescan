@@ -22,13 +22,12 @@
 (def http-transport (GoogleNetHttpTransport/newTrustedTransport))
 
 (defn build-credential []
-  (let [flow (-> (GoogleAuthorizationCodeFlow$Builder. http-transport json-factory secrets (java.util.ArrayList. scopes))
-                 (.build))
-        credential (AuthorizationCodeInstalledApp. flow (LocalServerReceiver.))]
-    (.authorize credential "user")))
+  (-> (GoogleAuthorizationCodeFlow$Builder. http-transport json-factory secrets scopes)
+      (.build)
+      (AuthorizationCodeInstalledApp. (LocalServerReceiver.))
+      (.authorize "user")))
 
 (defn build-youtube [credential]
-  (println credential)
   (-> (YouTube$Builder. http-transport json-factory credential)
       (.setApplicationName application-name)
       (.build)))
@@ -37,7 +36,7 @@
 (defstate youtube :start (build-youtube google-credentials))
 
 (defn channel-details [channel-id]
-  (let [request (.list (.channels youtube) "snippet,contentDetails,statistics")]
+  (let [request (.. youtube (channels) (list "snippet,contentDetails,statistics"))]
     (-> request
         (.setId channel-id)
         (.execute))))
