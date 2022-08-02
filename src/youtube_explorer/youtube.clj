@@ -40,3 +40,45 @@
     (-> request
         (.setId channel-id)
         (.execute))))
+
+(defn search-videos [{:keys [related-to-video-id channel-id order max-results
+                             published-after published-before query
+                             relevance-language video-category-id video-duration]}]
+  (loop [page-token nil
+         data []]
+    (let [req (.. youtube (search) (list "snippet"))]
+
+      (when (some? page-token)
+        (.setPageToken req page-token))
+
+      (when related-to-video-id
+        (.setRelatedToVideoId req related-to-video-id))
+      (when channel-id
+        (.setChannelId req channel-id))
+      (when order
+        (.setOrder req order))
+      (when published-after
+        (.setPublishedAfter req published-after))
+      (when published-before
+        (.setPublishedBefore req published-before))
+      (when query
+        (.setQ req query))
+      (when relevance-language
+        (.setRelevanceLanguage req relevance-language))
+      (when video-category-id
+        (.setVideoCategoryId req video-category-id))
+      (when video-duration
+        (.setVideoDuration req video-duration))
+
+      (.setMaxResults req 50)
+      (when max-results
+        (.setMaxResults req max-results))
+      (.setType req "video")
+
+      (let [res (.execute req)
+            page-token (get res "nextPageToken")
+            data (conj data res)]
+
+        (if (nil? page-token)
+          data
+          (recur page-token data))))))
