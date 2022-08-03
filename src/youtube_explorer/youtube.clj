@@ -1,6 +1,9 @@
 (ns youtube-explorer.youtube
   (:require [clojure.java [io :as io]]
-            [mount.core :refer [defstate]])
+            [mount.core :refer [defstate]]
+            [clojure.pprint :refer [pprint]]
+            [youtube-explorer.xtdb :as db]
+            [xtdb.api :as xt])
   (:import (com.google.api.client.googleapis.javanet GoogleNetHttpTransport)
            (com.google.api.client.json.gson GsonFactory)
            (java.io  InputStreamReader)
@@ -82,3 +85,24 @@
         (if (nil? page-token)
           data
           (recur page-token data))))))
+
+(defn pick-video-fields [related-to-video-id video]
+  {:xt/id (get-in video ["id" "videoId"])
+   :id (get-in video ["id" "videoId"])
+   :related-to-video-id related-to-video-id
+   :channel-id (get-in video ["snippet" "channelId"])
+   :title (get-in video ["snippet" "title"])
+   :description (get-in video ["snippet" "description"])})
+
+(defn video->txn [video] [::xt/put video])
+
+(comment
+  (let [data (search-videos {:related-to-video-id "yw4N_GoIA-k"})
+        items (get (first data) "items")
+        txns (map (comp (partial pick-video-fields "yw4N_GoIA-k") video->txn) items)]
+    (pprint txns)
+    (xt/submit-tx db/xtdb-node txns)))
+
+(comment
+  (xt/q (xt/db db/xtdb-node) '{:find [e]
+                               :where [[e :related-to-video-id "yw4N_GoIA-k"]]}))
