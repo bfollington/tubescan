@@ -18,10 +18,9 @@
     (catch RuntimeException e
       (printf "Error parsing edn file '%s': %s\n" source (.getMessage e)))))
 
-(def db-spec
-  (load-edn "db.edn"))
+(def db-spec (load-edn "db.edn"))
 
-(defn start-xtdb! []
+(defn start-xtdb-pg! []
   (xt/start-node
    {:xtdb/tx-log {:xtdb/module 'xtdb.jdbc/->tx-log
                   :connection-pool {:dialect {:xtdb/module 'xtdb.jdbc.psql/->dialect}
@@ -33,9 +32,21 @@
                                             :pool-opts {}
                                             :db-spec db-spec}}}))
 
+(defn start-xtdb-sqlite! []
+  (xt/start-node
+   {:xtdb/tx-log {:xtdb/module 'xtdb.jdbc/->tx-log
+                  :connection-pool {:dialect {:xtdb/module 'xtdb.jdbc.sqlite/->dialect}
+                                    :pool-opts {}
+                                    :db-spec db-spec}
+                  :poll-sleep-duration (Duration/ofSeconds 1)}
+    :xtdb/document-store {:xtdb/module 'xtdb.jdbc/->document-store
+                          :connection-pool {:dialect {:xtdb/module 'xtdb.jdbc.sqlite/->dialect}
+                                            :pool-opts {}
+                                            :db-spec db-spec}}}))
+
 
 (defstate xtdb-node
-  :start (start-xtdb!)
+  :start (start-xtdb-sqlite!)
   :stop (.close xtdb-node))
 
 (comment
