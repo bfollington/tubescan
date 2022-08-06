@@ -1,4 +1,4 @@
-# youtube-explorer
+# tubescan
 
 ## setup
 

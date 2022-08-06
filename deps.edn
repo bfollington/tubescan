@@ -2,6 +2,7 @@
         http-kit/http-kit {:mvn/version "2.6.0-RC1"}
         mount/mount {:mvn/version "0.1.16"}
         nrepl/nrepl {:mvn/version "0.9.0"}
+        org.clojure/data.json {:mvn/version "2.4.0"}
         clj-http/clj-http {:mvn/version "3.12.3"}
         com.google.api-client/google-api-client {:mvn/version "1.35.2"}
         com.google.apis/google-api-services-youtube {:mvn/version "v3-rev222-1.25.0"}

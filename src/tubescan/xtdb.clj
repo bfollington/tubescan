@@ -1,4 +1,4 @@
-(ns youtube-explorer.xtdb
+(ns tubescan.xtdb
   (:require [clojure.java.io :as io]
             [mount.core :refer [defstate]]
             [xtdb.api :as xt]

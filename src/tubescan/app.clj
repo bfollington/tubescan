@@ -1,7 +1,7 @@
-(ns youtube-explorer.app
+(ns tubescan.app
   (:require [org.httpkit.server :as server]
             [nrepl.server :as nrepl]
-            [youtube-explorer.youtube :as youtube]
+            [tubescan.youtube :as youtube]
             [mount.core :refer [start defstate]])
   (:gen-class))
 
@@ -15,7 +15,7 @@
 
 (defstate web-app
   :start (let [server (server/run-server
-                       (fn [_req] {:body (str (youtube/channel-details "UC_x5XG1OV2P6uZZ5FSM9Ttw"))})
+                       (fn [_req] {:body (str (youtube/search-videos {:related-to-video-id "yw4N_GoIA-k"}))})
                        {:port http-port})]
            (println "Site running on" (str "http://localhost:" http-port))
            server)
