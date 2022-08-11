@@ -11,14 +11,15 @@
            (com.google.api.services.youtube YouTube$Builder)
            (com.google.api.client.extensions.java6.auth.oauth2 AuthorizationCodeInstalledApp)
            (com.google.api.client.extensions.jetty.auth.oauth2 LocalServerReceiver)
-           (com.google.api.client.googleapis.auth.oauth2 GoogleClientSecrets GoogleAuthorizationCodeFlow$Builder)))
+           (com.google.api.client.googleapis.auth.oauth2 GoogleClientSecrets GoogleAuthorizationCodeFlow$Builder)
+           (com.google.api.services.youtube.model Playlist PlaylistSnippet PlaylistItem PlaylistItemSnippet ResourceId)))
 
 ; This goddamn mess is based on the official Google example for Java
 ; see: https://developers.google.com/youtube/v3/quickstart/java
 ; and: https://developers.google.com/youtube/v3/quickstart/go (more up-to-date)
 
 (def client-secrets-file-path "client_secret.json")
-(def scopes ["https://www.googleapis.com/auth/youtube.readonly"])
+(def scopes ["https://www.googleapis.com/auth/youtube"])
 
 (def application-name "My App")
 (def json-factory (GsonFactory/getDefaultInstance))
@@ -51,6 +52,29 @@
     (-> (.execute request)
         (get "items")
         (first))))
+
+(defn create-playlist! [name]
+  (let [snippet (-> (PlaylistSnippet.)
+                    (.setTitle name))
+        playlist (-> (Playlist.)
+                     (.setSnippet snippet))
+        request (.. youtube (playlists) (insert "snippet" playlist))]
+    (-> (.execute request)
+        (get "id"))))
+
+(defn video-id->resource-id [video-id]
+  (-> (ResourceId.)
+      (.setKind "youtube#video")
+      (.setVideoId video-id)))
+
+(defn add-video-to-playlist! [playlist-id video-id]
+  (let [snippet (-> (PlaylistItemSnippet.)
+                    (.setPlaylistId playlist-id)
+                    (.setResourceId (video-id->resource-id video-id)))
+        playlist-item (-> (PlaylistItem.)
+                          (.setSnippet snippet))
+        request (.. youtube (playlistItems) (insert "snippet" playlist-item))]
+    (-> (.execute request))))
 
 (defn video->statistics [video]
   (pprint video)
@@ -98,6 +122,7 @@
             page-token (get res "nextPageToken")
             data (conj data res)]
 
+        ; hard cap maximum iterations
         (if (or (nil? page-token) (> counter 5))
           data
           (recur page-token (inc counter) data))))))
