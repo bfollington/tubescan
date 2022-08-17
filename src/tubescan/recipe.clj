@@ -6,8 +6,8 @@
             [xtdb.api :as xt]))
 
 (def example-recipe
-  {:steps [[:list-channel "lexfridman" {:max-results 10}]
-           [:where [:not-rated-by-me]]]})
+  {:from [[:channel {:username "lexfridman" :max-results 10}]]
+   :where [[:my-rating :none]]})
 
 (defn video->id [video]
   (get-in video ["snippet" "resourceId" "videoId"])) ;; presumptuous on what kind of resource this is
@@ -16,28 +16,25 @@
   (->> (yt/channel-uploads channel-id {:max-results max-results})
        (map video->id)))
 
-(defn filter-not-rated [results]
+(defn filter-by-rating [rating results]
+  (pprint "by rating")
+  (pprint rating)
   (let [ratings (yt/my-rating-for-videos results)]
-    (filter (fn [vid] (= (get ratings vid) "none")) results)))
+    (filter (fn [vid] (= (get ratings vid) (name rating))) results)))
 
-(defn where [results clauses]
-  (loop [remaining-clauses clauses
-         filtered-results results]
-    (let [[clause-type _] (first remaining-clauses)
-          remaining-clauses (drop 1 remaining-clauses)]
-      (if (some? clause-type)
-        (case clause-type
-          :not-rated-by-me (recur remaining-clauses (filter-not-rated results))
-          :else (recur remaining-clauses filtered-results))
-        filtered-results))))
+(defn execute-where [[clause-type params] results]
+  (if (some? clause-type)
+    (case clause-type
+      :my-rating (filter-by-rating params results)
+      :else results)
+    results))
 
-(defn execute-step [[step-type & args] results]
-  (let [results' (case step-type
-                   :list-channel (let [[username params] args]
-                                   (list-channel username params))
-                   :where (where results args))]
+(defn execute-from [[step-type params] results]
+  (let [new-results (case step-type
+                      :channel (let [{:keys [username max-results]} params]
+                                 (list-channel username {:max-results max-results})))]
 
-    results'))
+    (concat results new-results)))
 
 (defn save-results! [session-id results]
   (let [doc {:xt/id (str "recording/" session-id)
@@ -46,15 +43,24 @@
       (idx/index-video! result))
     (db/save-document! doc)))
 
+(defn execute-substeps [steps handler-fn results]
+  (print "STARTING NEW STEP")
+  (pprint steps)
+  (pprint results)
+  (loop [results results
+         remaining-steps steps]
+    (let [next-step (first remaining-steps)]
+      (if (some? next-step)
+        (recur (handler-fn next-step results) (drop 1 remaining-steps))
+        results))))
+
 (defn execute-recipe! [session-id recipe]
-  (let [{:keys [steps]} recipe]
-    (loop [results []
-           remaining-steps steps]
-      (if (> (count remaining-steps) 0)
-        (let [next-step (first remaining-steps)]
-          (recur (execute-step next-step results) (drop 1 remaining-steps)))
-        (do (save-results! session-id results)
-            results)))))
+  (let [{:keys [from where]} recipe
+        dataset (execute-substeps from execute-from [])
+        results (execute-substeps where execute-where dataset)]
+    (print "ABOUT TO SAVE")
+    (save-results! session-id results)
+    results))
 
 (comment
   "Run the example recipe and persist the results"

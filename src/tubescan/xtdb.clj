@@ -52,18 +52,15 @@
   :stop (.close xtdb-node))
 
 (defn save-document! [doc]
+  (print "saving")
+  (print doc)
   (xt/submit-tx xtdb-node [(->txn doc)]))
 
 (comment
   (xt/submit-tx xtdb-node [[::xt/put
                             {:xt/id "hi2u"
-                             :user/name "zig"}]]))
+                             :user/name "zag"}]]))
 
 (comment
   (xt/q (xt/db xtdb-node) '{:find [e]
-                            :where [[e :user/name "zig"]]}))
-
-(def tx-details
-  (xt/submit-tx xtdb-node [[::xt/put
-                            {:xt/id "hi2u"
-                             :user/name "zig"}]]))
+                            :where [[e :user/name "zag"]]}))
