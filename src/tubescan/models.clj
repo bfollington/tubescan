@@ -1,4 +1,6 @@
-(ns tubescan.models)
+(ns tubescan.models
+  (:require [malli.core :as m]
+            [malli.dev.pretty :refer [explain]]))
 
 (def ChannelStep
   [:map
@@ -14,7 +16,7 @@
   [:tuple {:title "location"} :double :double :radius])
 
 (def CaptionOptions
-  [:enum [:closed-caption]])
+  [:enum :closed-caption])
 
 (def SearchStep
   [:map
@@ -32,12 +34,36 @@
    [:depth {:optional true :min 1 :max 3} int?]
    [:max-results {:optional true} int?]])
 
-(def WhereOption
-  [:enum [:minimum-views
-          :minimum-likes
-          :minimum-length
-          :not-rated-by-me
-          :excluding-channels]])
+(def RatingOptions [:enum :liked :disliked :none])
 
 (def FromOption
-  [:enum [:search :channel :channels :playlist :enhanced-playlist]])
+  [:enum :search :channel :channels :playlist :enhanced-playlist])
+
+(def FromTuple [:tuple FromOption any?])
+
+(def WhereOption
+  [:enum
+   :minimum-views
+   :minimum-likes
+   :minimum-length
+   :my-rating
+   :excluding-channels])
+
+(def WhereTuple [:tuple WhereOption any?])
+
+(def Recipe
+  [:map
+   [:from [:sequential FromTuple]]
+   [:where [:sequential WhereTuple]]])
+
+(defn validate-recipe [recipe]
+  (if (m/validate Recipe recipe)
+    ()
+    (explain Recipe recipe)))
+
+(comment
+  (validate-recipe {:from [[:enhanced-playlist {:playlist-id "id-xx" :depth 2 :max-results 3}]]
+
+                    :where [[:my-rating nil]
+                            [:minimum-length "10h"]
+                            [:excluding-channels ["lexfridman"]]]}))
