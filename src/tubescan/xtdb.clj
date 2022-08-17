@@ -5,6 +5,8 @@
             [clojure.edn :as edn])
   (:import (java.time Duration)))
 
+(defn ->txn [video] [::xt/put video])
+(defn unpack [result] (first (first result)))
 
 (defn load-edn
   "Load edn from an io/reader source (filename or io/resource)."
@@ -48,6 +50,9 @@
 (defstate xtdb-node
   :start (start-xtdb-sqlite!)
   :stop (.close xtdb-node))
+
+(defn save-document! [doc]
+  (xt/submit-tx xtdb-node [(->txn doc)]))
 
 (comment
   (xt/submit-tx xtdb-node [[::xt/put
