@@ -2,6 +2,7 @@
   (:require [clojure.java [io :as io]]
             [mount.core :refer [defstate]]
             [clojure.pprint :refer [pprint]]
+            [clojure.string :as string]
             [clojure.data.json :as json]
             [tubescan.xtdb :as db]
             [xtdb.api :as xt])
@@ -46,6 +47,7 @@
         (.setId channel-id)
         (.execute))))
 
+
 (defn video-details [video-id]
   (let [request (.. youtube (videos) (list "snippet,statistics,contentDetails"))]
     (.setId request video-id)
@@ -65,6 +67,40 @@
     (-> (.execute request)
         (get "items"))))
 
+(defn channel-uploads-playlist-id [channel-id]
+  (let [request (.. youtube (channels) (list "contentDetails"))]
+    (.setForUsername request channel-id)
+    (-> (.execute request)
+        (get "items")
+        (first)
+        (get "contentDetails")
+        (get "relatedPlaylists")
+        (get "uploads"))))
+
+(defn channel-uploads [channel-id & {:keys [max-results] :or {max-results 10}}]
+  (let [request (.. youtube (playlistItems) (list "snippet"))]
+    (.setPlaylistId request (channel-uploads-playlist-id channel-id))
+    (.setMaxResults request max-results)
+    (-> (.execute request)
+        (get "items"))))
+
+(defn my-rating-for-video [video-id]
+  (let [request (.. youtube (videos) (getRating "snippet"))]
+    (.setId request video-id)
+    (-> (get (.execute request) "items")
+        (first)
+        (get "rating"))))
+
+(defn my-rating-for-videos [video-ids]
+  (let [request (.. youtube (videos) (getRating "snippet"))]
+    (.setId request (string/join "," video-ids))
+    (->> (get (.execute request) "items")
+         (map (fn [item] [(get item "videoId") (get item "rating")]))
+         (into {}))))
+
+(comment
+  (my-rating-for-video "yw4N_GoIA-k"))
+
 (defn my-likes []
   (let [request (.. youtube (playlistItems) (list "snippet"))]
     (-> request
@@ -72,10 +108,12 @@
         (.setMaxResults 10)
         (.execute)
         (get "items"))))
+
 (comment
   (my-likes)
   (my-playlists)
   (my-channels))
+
 
 (defn create-playlist! [name]
   (let [snippet (-> (PlaylistSnippet.)
@@ -160,13 +198,13 @@
    :video/title (get-in video ["snippet" "title"])
    :video/description (get-in video ["snippet" "description"])})
 
-(defn video->txn [video] [::xt/put video])
+(defn ->txn [video] [::xt/put video])
 
 ; get related videos, persist basic summary into db
 (comment
   (let [data (search-videos {:related-to-video-id "yw4N_GoIA-k"})
         items (get (first data) "items")
-        txns (map (comp video->txn (partial pick-video-fields "yw4N_GoIA-k")) items)]
+        txns (map (comp ->txn (partial pick-video-fields "yw4N_GoIA-k")) items)]
     (pprint data)
     (xt/submit-tx db/xtdb-node (vec txns))))
 
@@ -212,3 +250,38 @@
    (xt/db db/xtdb-node)
    '{:find [(pull ?video [*])]
      :where [[?video :video/id "crt1MRMBf3I"]]}))
+
+(defn save-document! [doc]
+  (xt/submit-tx db/xtdb-node [(->txn doc)]))
+
+(defn video->db [details rating]
+  (pprint details)
+  {:xt/id (get-in details ["id"])
+   :video/id (get-in details ["id"])
+   :video/rating rating
+  ;;  :video/related-to-video-id related-to-video-id
+   :video/channel-id (get-in details ["snippet" "channelId"])
+   :video/title (get-in details ["snippet" "title"])
+   :video/description (get-in details ["snippet" "description"])
+   :video/statistics {:views (get-in details ["statistics" "viewCount"])
+                      :comments (get-in details ["statistics" "commentCount"])
+                      :favorites (get-in details ["statistics" "favoriteCount"])
+                      :likes (get-in details ["statistics" "likeCount"])}})
+
+; get the video details, statistics, liked status etc.
+(defn index-video! [video-id]
+  (let [details (video-details video-id)
+        rating (my-rating-for-video video-id)
+        doc (video->db details rating)]
+
+    (pprint doc)
+    (save-document! doc)))
+
+(comment
+  (index-video! "yw4N_GoIA-k"))
+
+(comment
+  (xt/q
+   (xt/db db/xtdb-node)
+   '{:find [(pull ?video [*])]
+     :where [[?video :video/id "yw4N_GoIA-k"]]}))
