@@ -7,6 +7,8 @@ pg-db.edn
 local_db
 .nrepl-port
 
+.calva
+
 # -*- mode: gitignore; -*-
 *~
 \#*\#
