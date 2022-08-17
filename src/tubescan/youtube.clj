@@ -53,6 +53,30 @@
         (get "items")
         (first))))
 
+(defn my-playlists []
+  (let [request (.. youtube (playlists) (list "snippet,contentDetails"))]
+    (.setMine request true)
+    (-> (.execute request)
+        (get "items"))))
+
+(defn my-channels []
+  (let [request (.. youtube (channels) (list "snippet,contentDetails"))]
+    (.setMine request true)
+    (-> (.execute request)
+        (get "items"))))
+
+(defn my-likes []
+  (let [request (.. youtube (playlistItems) (list "snippet"))]
+    (-> request
+        (.setPlaylistId "LL")
+        (.setMaxResults 10)
+        (.execute)
+        (get "items"))))
+(comment
+  (my-likes)
+  (my-playlists)
+  (my-channels))
+
 (defn create-playlist! [name]
   (let [snippet (-> (PlaylistSnippet.)
                     (.setTitle name))

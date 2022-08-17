@@ -1,0 +1,19 @@
+{:steps [[:list-channel "lexfridman" {:after-date "2020-01-01"
+                                      :order "views"
+                                      :max-results 10}]
+         [:where [:not-rated-by-me]]]}
+
+{:steps [[:search {:query "Butter Chicken Recipe"
+                   :relevance-language "hi"
+                   :captions :closed-caption
+                   :location ["(37.42307,-122.08427)" 10] ;unsure on best setup, 10 is in kms
+                   :published-after "2020-01-01"
+                   :order :views ; sort? clearer?
+                   :max-results 10}]
+         [:where [[:minimum-views 10000]
+                  [:minimum-likes 10]
+                  [:minimum-length "10h"]]]]}
+
+{:steps [[:enhance "A PLAYLIST ID" {:depth 3 :max-results 10}]
+         [:where [[:not-rated-by-me]
+                  [:excluding-channels ["lexfridman"]]]]]}
