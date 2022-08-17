@@ -13,7 +13,7 @@
   [:sequential string?])
 
 (def Location
-  [:tuple {:title "location"} :double :double :radius])
+  [:tuple {:title "location"} :double :double :int])
 
 (def CaptionOptions
   [:enum :closed-caption])
@@ -37,7 +37,12 @@
 (def RatingOptions [:enum :liked :disliked :none])
 
 (def FromOption
-  [:enum :search :channel :channels :playlist :enhanced-playlist])
+  [:enum
+   :search
+   :channel
+   :channels
+   :playlist
+   :enhanced-playlist])
 
 (def FromTuple [:tuple FromOption any?])
 
@@ -56,14 +61,60 @@
    [:from [:sequential FromTuple]]
    [:where [:sequential WhereTuple]]])
 
-(defn validate-recipe [recipe]
+(def where-option->schema
+  {:minimum-likes (m/schema :int {:min 0})
+   :minimum-views (m/schema :int {:min 0})
+   :minimum-length (m/schema :int {:min 0})
+   :my-rating RatingOptions
+   :excluding-channels [:sequential string?]})
+
+(def from-option->schema
+  {:search SearchStep
+   :channel ChannelStep
+   :channels ChannelsStep
+   :playlist [:sequential string?]
+   :enhanced-playlist EnhanceStep})
+
+(defn validate-command
+  [{:keys [label registry]}]
+
+  (fn [[option value]]
+    (let [schema (option registry)]
+      (if (m/validate schema value)
+        nil
+
+        (let [error (m/explain schema value)]
+          {:error-message (str "Invalid options for " label " " option error)
+           :label label
+           :option option
+           :value value
+           :error error})))))
+
+(defn run-validations [validate xs]
+  (->> xs
+       (map validate)
+       (filter some?)
+       (into [])))
+
+(defn validate-recipe [{:keys [from where] :as recipe}]
   (if (m/validate Recipe recipe)
-    ()
-    (explain Recipe recipe)))
 
-(comment
-  (validate-recipe {:from [[:enhanced-playlist {:playlist-id "id-xx" :depth 2 :max-results 3}]]
 
-                    :where [[:my-rating nil]
-                            [:minimum-length "10h"]
-                            [:excluding-channels ["lexfridman"]]]}))
+    (let [inner-validations
+          (apply concat [(run-validations (validate-command {:label "From" :registry from-option->schema}) from)
+                         (run-validations (validate-command {:label "Where" :registry where-option->schema}) where)])]
+      (if ((complement empty?) inner-validations)
+				;; TODO: Enrich with providence
+        {:errors inner-validations}
+        true))
+
+
+    ((explain Recipe recipe)
+     {:errors (m/explain Recipe recipe)})))
+
+(validate-recipe {:from [[:enhanced-playlist {:id "name" :depth 2 :max-results 3}]
+                         [:search {:query "sdf" :location [10.0 10.0 10]}]]
+
+                  :where [[:my-rating :none]
+                          [:minimum-length 0]
+                          [:excluding-channels ["lexfridman"]]]})
