@@ -1,6 +1,7 @@
-{:steps [[:list-channel "lexfridman" {:after-date "2020-01-01"
-                                      :order "views"
-                                      :max-results 10}]
+{:steps [[:list-channel {:name "lexfridman"
+                         :after-date "2020-01-01"
+                         :order "views"
+                         :max-results 10}]
          [:where [:not-rated-by-me]]]}
 
 {:steps [[:search {:query "Butter Chicken Recipe"
@@ -14,6 +15,6 @@
                   [:minimum-likes 10]
                   [:minimum-length "10h"]]]]}
 
-{:steps [[:enhance "A PLAYLIST ID" {:depth 3 :max-results 10}]
+{:steps [[:enhance {:playlist-id "xxxx" :depth 3 :max-results 10}]
          [:where [[:not-rated-by-me]
                   [:excluding-channels ["lexfridman"]]]]]}
